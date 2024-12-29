@@ -1,0 +1,50 @@
+hub_and_spoke_strategy_task:
+  description: >
+    Given an array of keywords, create a Hub and Spoke content strategy.
+  expected_output: >
+    A comprehensive Hub and Spoke content strategy that leverages the given keywords
+    to optimize traffic and conversions for our niche site.
+  agent: content_strategist
+
+create_hub_topics_array_task:
+  description: >
+    Given the Hub and Spoke content strategy, create a list of Hub topics. These should be our high-level keywords and these hub topic pages
+    will be the content pillars for our hub-and-spoke model blog. Each hub topic should have both a human-readable title and a URL-friendly slug.
+  expected_output: >
+    An array of 4-8 hub topic objects. Each object must have a 'title' (human-readable) and 'slug' (kebab-case) field.
+    Your output MUST be ONLY a valid JSON array of objects, with no additional text or explanation.
+    Example format:
+    [
+      {
+        "title": "Getting Started with Journal Prompts",
+        "slug": "getting-started-journal-prompts"
+      },
+      {
+        "title": "Advanced Journaling Techniques",
+        "slug": "advanced-journaling-techniques"
+      }
+    ]
+  agent: content_strategist
+
+create_spoke_posts_array_task:
+  description: >
+    Given the Hub and Spoke content strategy and the array of hub topics, create a list of at least 16 spoke posts for each hub topic. 
+    These spoke posts will be the core content for our hub-and-spoke model blog, providing rich detail and ample SEO value.
+    Each spoke post should have a human-readable title, a URL-friendly slug, and be associated with its parent hub topic via the hub's slug.
+  expected_output: >
+    An array of spoke post objects. Each object must have a 'title' (human-readable), 'slug' (kebab-case), and 'hub' (matching a hub topic's slug) field.
+    Your output MUST be ONLY a valid JSON array of objects, with no additional text or explanation. Provide at least 16 spoke posts for each hub topic.
+    Example format:
+    [
+      {
+        "title": "50 Morning Journal Prompts to Start Your Day",
+        "slug": "50-morning-journal-prompts",
+        "hub": "getting-started-journal-prompts"
+      },
+      {
+        "title": "How to Write Your First Journal Entry",
+        "slug": "how-to-write-first-journal-entry",
+        "hub": "getting-started-journal-prompts"
+      }
+    ]
+  agent: content_strategist
