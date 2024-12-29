@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 import asyncio
+import json
 from typing import List, Dict, Optional
 
 from crewai.flow.flow import Flow, listen, start
 from pydantic import BaseModel
 
-from example_flow.crews.keyword_crew.keyword_crew import (
-    KeywordCrew,
-)
+from example_flow.crews.keyword_crew.keyword_crew import KeywordCrew
+from example_flow.crews.content_strategy_crew.content_strategy_crew import ContentStrategyCrew
 from example_flow.types import Article, Post, Topic, FAQItem, Image, ParentTopic
-
-# Add this back in after we've created more Crews
-# from .crews.outline_book_crew.outline_crew import OutlineCrew 
 
 
 class HubAndSpokeState(BaseModel):
@@ -27,7 +24,7 @@ class HubAndSpokeState(BaseModel):
         comprehensive, interconnected content that attracts organic traffic, engages users, 
         and fulfills their search intent.
     """
-    target_keywords: List[str] = ["Daily Journal Prompts", "Journal Prompts for Students", "Journal Prompts for Teachers", "Journal Prompts for Parents"]  # Populated by Keyword Research Crew
+    target_keywords: List[str] = []  # Populated by Keyword Research Crew
     hub_topics: List[Dict[str, str]] = []  # Stores hub topics with title and slug
     spoke_posts: List[Dict[str, str]] = []  # Stores spoke posts with title, slug, and hub association
     completed_spokes: List[str] = []  # Tracks completed spoke post titles
@@ -90,14 +87,51 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
         Log completion of the Keyword Research Crew.
         """
         print("Keyword Research Crew has finished successfully.")
-        print("Next crews are not yet implemented. Ending the flow here for now.")
-        # This function acts as a placeholder for the next steps in the flow.
+        print(f"Found {len(self.state.target_keywords)} keywords.")
+        return self.state.target_keywords
+    
+    @listen(conduct_keyword_research)
+    def create_content_strategy(self):
+        """
+        Run the Content Strategy Crew to create hub and spoke strategy.
+        """
+        print("Starting Content Strategy Crew...")
+        result = (
+            ContentStrategyCrew()
+            .crew()
+            .kickoff(
+                inputs={
+                    "topic": self.state.topic,
+                    "context": self.state.context,
+                    "goal": self.state.goal,
+                    "keywords": self.state.target_keywords,
+                }
+            )
+        )
 
-        # Example placeholder for future state updates or outputs:
+        # Parse and store the results
+        try:
+            strategy_output = json.loads(result.raw)
+            if isinstance(strategy_output, dict):
+                if "hub_topics" in strategy_output:
+                    self.state.hub_topics = strategy_output["hub_topics"]
+                if "spoke_posts" in strategy_output:
+                    self.state.spoke_posts = strategy_output["spoke_posts"]
+            print("Content strategy created successfully.")
+            return strategy_output
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Error processing content strategy: {e}")
+            print(f"Raw output received: {result.raw}")
+            return None
+
+    @listen(create_content_strategy)
+    def log_completion(self):
+        """
+        Log completion of the flow.
+        """
+        print("Flow has finished successfully.")
         print(f"Current State: {self.state}")
-
-        # Return success message
-        return "Flow completed successfully up to Keyword Research Crew."
+        return "Flow completed successfully."
 
 
 def kickoff():

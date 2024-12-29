@@ -1,6 +1,12 @@
 hub_and_spoke_strategy_task:
   description: >
-    Given an array of keywords, create a Hub and Spoke content strategy.
+    Given these keywords: {keywords}
+    Create a Hub and Spoke content strategy that targets these keywords effectively.
+    
+    Important requirements:
+    1. Create 4-8 hub topics that cover our main keyword themes
+    2. Each hub topic must be able to support at least 16 unique spoke posts
+    3. Ensure even distribution of our target keywords across the hubs
   expected_output: >
     A comprehensive Hub and Spoke content strategy that leverages the given keywords
     to optimize traffic and conversions for our niche site.
@@ -8,43 +14,62 @@ hub_and_spoke_strategy_task:
 
 create_hub_topics_array_task:
   description: >
-    Given the Hub and Spoke content strategy, create a list of Hub topics. These should be our high-level keywords and these hub topic pages
-    will be the content pillars for our hub-and-spoke model blog. Each hub topic should have both a human-readable title and a URL-friendly slug.
+    Based on our Hub and Spoke content strategy and using these keywords as input: {keywords}
+    Create a list of Hub topics. These should be our high-level keywords and these hub topic pages
+    will be the content pillars for our hub-and-spoke model blog.
+    
+    Important requirements:
+    1. Create 4-8 hub topics
+    2. Each hub must be broad enough to support at least 16 unique spoke posts
+    3. Hubs should not overlap too much in their focus
+    4. Each hub should target a distinct set of our keywords
   expected_output: >
     An array of 4-8 hub topic objects. Each object must have a 'title' (human-readable) and 'slug' (kebab-case) field.
     Your output MUST be ONLY a valid JSON array of objects, with no additional text or explanation.
     Example format:
     [
-      {
+      {{
         "title": "Getting Started with Journal Prompts",
         "slug": "getting-started-journal-prompts"
-      },
-      {
+      }},
+      {{
         "title": "Advanced Journaling Techniques",
         "slug": "advanced-journaling-techniques"
-      }
+      }}
     ]
   agent: content_strategist
+  context: ["hub_and_spoke_strategy_task"]
 
 create_spoke_posts_array_task:
   description: >
-    Given the Hub and Spoke content strategy and the array of hub topics, create a list of at least 16 spoke posts for each hub topic. 
+    Using the hub topics from the previous task and these keywords: {keywords}
+    Create a list of spoke posts for each hub topic. 
     These spoke posts will be the core content for our hub-and-spoke model blog, providing rich detail and ample SEO value.
-    Each spoke post should have a human-readable title, a URL-friendly slug, and be associated with its parent hub topic via the hub's slug.
+    
+    CRITICAL REQUIREMENTS:
+    1. You MUST create EXACTLY 16 posts for EACH hub topic
+    2. Each post must be unique and specific to its hub topic
+    3. Posts should target long-tail variations of our keywords
+    4. Posts should cover a mix of beginner, intermediate, and advanced content
+    5. Each post title should be engaging and SEO-optimized
+    6. Post slugs must be unique across ALL posts
+    7. Each post's hub field must exactly match its parent hub's slug
   expected_output: >
     An array of spoke post objects. Each object must have a 'title' (human-readable), 'slug' (kebab-case), and 'hub' (matching a hub topic's slug) field.
-    Your output MUST be ONLY a valid JSON array of objects, with no additional text or explanation. Provide at least 16 spoke posts for each hub topic.
+    Your output MUST be ONLY a valid JSON array of objects, with no additional text or explanation.
+    You MUST create EXACTLY 16 posts for EACH hub topic.
     Example format:
     [
-      {
+      {{
         "title": "50 Morning Journal Prompts to Start Your Day",
         "slug": "50-morning-journal-prompts",
         "hub": "getting-started-journal-prompts"
-      },
-      {
+      }},
+      {{
         "title": "How to Write Your First Journal Entry",
         "slug": "how-to-write-first-journal-entry",
         "hub": "getting-started-journal-prompts"
-      }
+      }}
     ]
   agent: content_strategist
+  context: ["create_hub_topics_array_task"]
