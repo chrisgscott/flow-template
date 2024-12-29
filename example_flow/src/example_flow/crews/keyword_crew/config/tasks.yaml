@@ -1,0 +1,61 @@
+topic_for_dummies_task:
+  description: >
+    Imagine you're a book publisher who has published a lot of books about a specific topic "For Dummies". 
+    If I were writing a book called "{topic} for Dummies", what should the chapters be?
+  expected_output: >
+    A chapter outline for our book called "{topic} for Dummies". 
+    Include chapter names and any subsection names that would be included in each chapter for the absolute best "For Dummies" book on {topic}.
+  agent: keyword_researcher
+
+topic_conference_agenda_task:
+  description: >
+    Imagine you're a conference organizer who is planning a conference about {topic}. 
+    If I were organizing a conference called "{topic} Conference", what should the agenda be?
+  expected_output: >
+    An agenda for our conference called "{topic} Conference". 
+    Include talk titles and any other details that would be included in the conference agenda for the absolute best {topic} conference.
+  agent: keyword_researcher
+
+competitive_landscape_task:
+  description: >
+    Find the most popular website and tools about {topic}. Once you've found them, break out all of the things they write about into 5-15 high level categories.
+    What would those categories be? Give a brief description of each category, and a couple of specific examles of things they've written about that would fit into each category.
+  expected_output: >
+    A list of 5-15 high level categories about {topic}, with a brief description of each category, and a couple of specific examples of things the websites you've found have written about that would fit into each category.
+  agent: keyword_researcher
+
+reddit_task:
+  description: >
+    What are the most popular subreddits about {topic} on Reddit? What are the most popular topics those subreddits talk about?
+    What are some specific titles of popular threads on Reddit about {topic}?
+  expected_output: >
+   A list of the most popular subreddits about {topic} on Reddit, with a list of the most popular topics those subreddits talk about.
+   A list of some specific titles of popular threads on Reddit about {topic}. 
+  agent: keyword_researcher
+
+add_keywords_to_state_task:
+  description: >
+    Create a comprehensive list of keywords about {topic} based on all our research. Consider:
+    1. Different ways people might phrase the same concept (e.g., "daily prompts", "prompts for daily journaling", "everyday journal prompts")
+    2. Combinations with related terms (morning, evening, weekly, monthly)
+    3. Purpose-based variations (self-improvement, mental health, creativity)
+    4. Experience level variations (beginner, advanced)
+    5. Format variations (one-line, detailed, guided)
+    6. Emotional and psychological aspects
+    7. Time-based variations (5-minute, quick, in-depth)
+    8. Activity-based combinations (writing exercises, reflection activities)
+    9. Popular modifiers found in our research
+    10. Questions people commonly ask about journal prompts
+    11. The most common phrases someone might use to search for {topic} based on what you've learned in our research
+    12. The most common questions people ask about {topic} based on what you've learned in our research
+    13. High-level keywords found in our research that could be used as hub topics for a hub-and-spoke model blog
+
+    The goal is to capture as many relevant keyword variations as possible. Don't limit yourself - include any keyword that could reasonably be used to search for {topic}.
+  expected_output: >
+    Your output MUST be ONLY a valid JSON array of strings, with no additional text or explanation.
+    Example format:
+    ["keyword one", "keyword two", "keyword three"]
+    
+    Include at least 50 keywords covering all aspects mentioned in the description.
+    Do not include any text before or after the JSON array.
+  agent: keyword_researcher

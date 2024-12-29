@@ -1,0 +1,3 @@
+# List your project dependencies below. For example:
+crewai>=0.86.0
+python-dotenv>=1.0.1
