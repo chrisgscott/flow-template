@@ -1,6 +1,8 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from example_flow.tools.unsplash import UnsplashImageTool
+from crewai_tools import SerperDevTool
+
 
 @CrewBase
 class PostCreationCrew:
@@ -9,11 +11,17 @@ class PostCreationCrew:
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
+    def __init__(self):
+        super().__init__()
+        self.serper_tool = SerperDevTool()
+        self.unsplash = UnsplashImageTool()
+
     @agent
     def spoke_post_researcher(self) -> Agent:
         return Agent(
             config=self.agents_config["spoke_post_researcher"],
-            verbose=True
+            verbose=True, 
+            tools=[self.serper_tool]
         )
 
     @agent
@@ -27,7 +35,7 @@ class PostCreationCrew:
     def image_sourcing_expert(self) -> Agent:
         return Agent(
             config=self.agents_config["image_sourcing_expert"],
-            tools=[UnsplashImageTool()]
+            tools=[self.unsplash]
         )
     
     @agent
@@ -43,12 +51,6 @@ class PostCreationCrew:
         )
 
     @task
-    def hub_and_spoke_strategy_task(self) -> Task:
-        return Task(
-            config=self.tasks_config["hub_and_spoke_strategy_task"],
-        )
-
-    @task
     def spoke_post_research_task(self) -> Task:
         return Task(
             config=self.tasks_config["spoke_post_research_task"],
@@ -57,7 +59,8 @@ class PostCreationCrew:
     @task
     def image_sourcing_task(self) -> Task:
         return Task(
-            config=self.tasks_config["spoke_post_research_task"],
+            config=self.tasks_config["image_sourcing_task"],
+            tools=[self.unsplash]
         )
 
     @task
@@ -70,12 +73,6 @@ class PostCreationCrew:
     def frontmatter_expert_task(self) -> Task:
         return Task(
             config=self.tasks_config["frontmatter_expert_task"],
-        )
-
-    @task
-    def content_approval_task(self) -> Task:
-        return Task(
-            config=self.tasks_config["content_approval_task"],
         )
 
     @task

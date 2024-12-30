@@ -9,10 +9,10 @@ import requests
 # Load the environment variables from the .env file
 load_dotenv()
 
-# Get the API key from the environment variable
-UNSPLASH_API_KEY = os.getenv("UNSPLASH_API_KEY")
-if not UNSPLASH_API_KEY:
-    raise ValueError("Unsplash API key is not set in the .env file.")
+# Get the Unsplash credentials from environment variables
+UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
+if not UNSPLASH_ACCESS_KEY:
+    raise ValueError("Unsplash Access Key is not set in the .env file.")
 
 # Define the input schema for the tool
 class UnsplashImageInput(BaseModel):
@@ -36,7 +36,7 @@ class UnsplashImageTool(BaseTool):
             "query": query,
             "per_page": per_page,
             "page": page,
-            "client_id": UNSPLASH_API_KEY
+            "client_id": UNSPLASH_ACCESS_KEY  # Unsplash uses the Access Key as the client_id
         }
 
         # Make the API request
@@ -49,13 +49,18 @@ class UnsplashImageTool(BaseTool):
                 # Extract image details for the first result
                 image_data = data["results"][0]
                 src = image_data["urls"]["regular"]
-                alt = image_data["alt_description"] or "No description available"
                 width = image_data["width"]
                 height = image_data["height"]
-                
-                # Return an Image object
-                return Image(src=src, alt=alt, width=width, height=height)
+                alt = image_data["alt_description"] or image_data["description"] or query
+
+                # Create and return Image object
+                return Image(
+                    src=src,
+                    alt=alt,
+                    width=width,
+                    height=height
+                )
             else:
-                raise ValueError("No images found for the query.")
+                raise ValueError(f"No images found for query: {query}")
         else:
-            raise ValueError(f"Error: {response.status_code}, {response.text}")
+            raise ValueError(f"Error fetching image: {response.status_code} - {response.text}")

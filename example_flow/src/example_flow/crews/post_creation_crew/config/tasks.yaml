@@ -1,11 +1,44 @@
 spoke_post_research_task:
   description: >
+    Conduct detailed research for the post titled: {spoke_post[title]}
+    This post belongs to hub: {spoke_post[hub]}
+    
+    Consider these keywords in your research: {keywords}
   expected_output: >
+    An exhaustive report outlining the results of the research. Your output must be aligned with the post title and hub.
   agent: spoke_post_researcher
+  tools: ["serper_tool"]
+  output_file: "outputs/{spoke_post[slug]}/research.md"
+
+spoke_post_writer_task:
+  description: >
+    Write a blog post titled: {spoke_post[title]}
+    This post belongs to hub: {spoke_post[hub]}
+    
+    Write a blog post of at least 3000 words that is SEO-optimized and engaging, using the research from the previous task. 
+    Include any of these keywords in your post content, as long as they are relevant to the topic and used naturally in the context of the post: {keywords}
+    
+    Your complete blog post must include:
+    - Title and description using SEO-optimized keywords for this post
+    - At least 3 relevant FAQ questions and answers (in question-answer pairs), when appropriate for the post
+  expected_output: >
+    A comprehensive blog post that is SEO-optimized and engaging, using the research from the previous task and the provided keywords.
+    Your post must include:
+    - At least 3000 words
+    - SEO-optimized keywords
+    - Proper markdown formatting, utilizing headings, paragraphs and lists
+    - Detailed, comprehensive coverage of the topic
+
+    Your post must be complete and include all required fields, including FAQs when appropriate.
+  agent: spoke_post_writer
+  output_pydantic: Post
+  output_file: "outputs/{spoke_post[slug]}/draft.md"
+  create_directory: true
 
 image_sourcing_task:
   description: >
-    Using the Unsplash API, find and source a relevant primary image for the blog post from the previous task.
+    Review the blog post titled: {spoke_post[title]}
+    Using the Unsplash API, find and source a relevant primary image that represents the main theme or topic of this post.
   expected_output: >
     A properly formatted Image model with the following fields:
       src: str
@@ -15,30 +48,46 @@ image_sourcing_task:
     Your output MUST be ONLY valid YAML, with no additional text or explanation. All images must be from the Unsplash API and must be horizontal (landscape) orientation.
   agent: image_sourcing_expert
   tools: ["unsplash"]
-
-spoke_post_writer_task:
-  description: >
-    Write a blog post of at least 3000 words that is SEO-optimized and engaging, using the research from the previous task. Include any of these keywords in your post content, as long
-    as they are relevant to the topic and used naturally in the context of the post: {keywords}
-  expected_output: >
-    A comprehensive blog post that is SEO-optimized and engaging, using the research from the previous task and the provided keywords.
-    Your post must include:
-    - At least 3000 words
-    - SEO-optimized keywords
-    - Proper markdown formatting, utilizing headings, paragraphs and lists
-    - Detailed, comprehensive coverage of the topic
-
-    Format your post as markdown and save it to the markdown file.
-  agent: spoke_post_writer
+  output_pydantic: Image
+  output_file: "outputs/{spoke_post[slug]}/image.yaml"
 
 frontmatter_expert_task:
   description: >
-    Generate a YAML frontmatter for the blog post from the previous task.
+    Generate a YAML frontmatter for the blog post titled: {spoke_post[title]}
+    This post belongs to hub: {spoke_post[hub]}
+    
+    The frontmatter must strictly follow our frontmatter schema and include:
+    - The post title and description
+    - The hub slug
+    - The image information from the previous task
+    - Keywords from the post content (at least 5)
+    - Featured status (default to false)
+    - Draft status (default to true)
   expected_output: >
-
+    A full and complete YAML frontmatter for the blog post, following our frontmatter schema. If no keywords are provided,
+    review the blog post from the previous task and identify any keywords that could be used in the frontmatter. Include at least 5 keywords in the frontmatter.
+    For the image field, use the output from the previous image sourcing task.
+    Your output MUST be ONLY valid YAML, with no additional text or explanation.
   agent: frontmatter_expert
+  output_pydantic: Post
+  output_file: "outputs/{spoke_post[slug]}/frontmatter.yaml"
 
 content_approval_task:
   description: >
+    Review the blog post titled: {spoke_post[title]}
+    This post belongs to hub: {spoke_post[hub]}
+    
+    Ensure:
+    1. The frontmatter is properly formatted and complete
+    2. The post content meets our requirements (3000+ words, proper markdown, etc.)
+    3. The post includes relevant FAQ items
+    4. The image is appropriate for the content
+    
+    Combine the frontmatter and post content into a single markdown file with proper YAML frontmatter delimiters.
   expected_output: >
+    A full and complete markdown formatted blog post, ready for publication.
+    The frontmatter must be placed at the top of the file and must have YAML frontmatter delimiters (`---`) at the beginning and end of the frontmatter.
+    Your output MUST be ONLY valid markdown, with no additional text or explanation.
   agent: content_approval_expert
+  output_pydantic: Post
+  output_file: "outputs/{spoke_post[slug]}/post.md"
