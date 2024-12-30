@@ -12,15 +12,15 @@ from example_flow.types import Article, Post, Topic, FAQItem, Image, ParentTopic
 
 
 class HubAndSpokeState(BaseModel):
-    title: str = "The Ultimate Guide to Daily Journal Prompts"
-    topic: str = "Daily Journal Prompts"
+    title: str = "The Ultimate Guide to Daily Journaling"
+    topic: str = "Daily Journaling"
     context: str = """
         We're creating a niche site that uses a hub and spoke content model 
-        to get organic traffic to our Daily Journal Prompt posts and generator.
+        to get organic traffic to our Daily Journal Prompt generator.
     """
     goal: str = """
         The goal of this project is to build a high-ranking niche site focused on 
-        Daily Journal Prompts. Using the hub and spoke model, we aim to deliver 
+        Daily Journaling. Using the hub and spoke model, we aim to deliver 
         comprehensive, interconnected content that attracts organic traffic, engages users, 
         and fulfills their search intent.
     """
@@ -111,27 +111,98 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
 
         # Parse and store the results
         try:
-            strategy_output = json.loads(result.raw)
-            if isinstance(strategy_output, dict):
-                if "hub_topics" in strategy_output:
-                    self.state.hub_topics = strategy_output["hub_topics"]
-                if "spoke_posts" in strategy_output:
-                    self.state.spoke_posts = strategy_output["spoke_posts"]
-            print("Content strategy created successfully.")
-            return strategy_output
-        except (json.JSONDecodeError, ValueError) as e:
+            raw_output = result.raw
+            print("Raw output from Content Strategy Crew:", raw_output)
+            
+            try:
+                strategy_output = json.loads(raw_output)
+                
+                # First try to parse as a combined dictionary
+                if isinstance(strategy_output, dict):
+                    if "hub_topics" in strategy_output:
+                        hub_topics = strategy_output["hub_topics"]
+                        if not isinstance(hub_topics, list):
+                            raise ValueError("hub_topics must be a list")
+                        for hub in hub_topics:
+                            if not isinstance(hub, dict) or not all(k in hub for k in ["title", "slug"]):
+                                raise ValueError("Each hub topic must be a dict with 'title' and 'slug' keys")
+                        self.state.hub_topics = hub_topics
+
+                    if "spoke_posts" in strategy_output:
+                        spoke_posts = strategy_output["spoke_posts"]
+                        if not isinstance(spoke_posts, list):
+                            raise ValueError("spoke_posts must be a list")
+                        for post in spoke_posts:
+                            if not isinstance(post, dict) or not all(k in post for k in ["title", "slug", "hub"]):
+                                raise ValueError("Each spoke post must be a dict with 'title', 'slug', and 'hub' keys")
+                        self.state.spoke_posts = spoke_posts
+                
+                # If not a dict, try parsing as an array
+                elif isinstance(strategy_output, list):
+                    # Check if this is a hub topics array (no hub field)
+                    if all(isinstance(item, dict) and "title" in item and "slug" in item and "hub" not in item for item in strategy_output):
+                        self.state.hub_topics = strategy_output
+                    # Check if this is a spoke posts array (has hub field)
+                    elif all(isinstance(item, dict) and "title" in item and "slug" in item and "hub" in item for item in strategy_output):
+                        # Get unique hub slugs from the posts
+                        hub_slugs = {post["hub"] for post in strategy_output}
+                        
+                        # Create hub topics from the unique hub slugs if we don't have them yet
+                        if not self.state.hub_topics:
+                            self.state.hub_topics = [
+                                {
+                                    "title": slug.replace("-", " ").title(),
+                                    "slug": slug
+                                }
+                                for slug in hub_slugs
+                            ]
+                        
+                        # Store all posts
+                        self.state.spoke_posts = strategy_output
+                    else:
+                        raise ValueError("Array output must be either all hub topics or all spoke posts")
+
+            except json.JSONDecodeError:
+                print("Warning: Could not parse output as JSON")
+                return None
+
+            # Print summary
+            hub_post_counts = {}
+            for post in self.state.spoke_posts:
+                hub_post_counts[post["hub"]] = hub_post_counts.get(post["hub"], 0) + 1
+            
+            print("\n=== Content Strategy Flow Complete ===")
+            print(f"Generated {len(self.state.hub_topics)} hub topics:")
+            for hub in self.state.hub_topics:
+                post_count = hub_post_counts.get(hub["slug"], 0)
+                print(f"- {hub['title']} ({post_count} posts)")
+            print(f"\nTotal posts generated: {len(self.state.spoke_posts)}")
+            print("=====================================")
+            
+            return raw_output
+
+        except Exception as e:
             print(f"Error processing content strategy: {e}")
             print(f"Raw output received: {result.raw}")
             return None
 
     @listen(create_content_strategy)
-    def log_completion(self):
+    async def log_completion(self):
         """
         Log completion of the flow.
         """
-        print("Flow has finished successfully.")
-        print(f"Current State: {self.state}")
-        return "Flow completed successfully."
+        from collections import Counter
+        
+        # Count posts per hub
+        hub_post_counts = Counter(post['hub'] for post in self.state.spoke_posts)
+        
+        print("\n=== Content Strategy Flow Complete ===")
+        print(f"Generated {len(self.state.hub_topics)} hub topics:")
+        for hub in self.state.hub_topics:
+            post_count = hub_post_counts[hub['slug']]
+            print(f"- {hub['title']} ({post_count} posts)")
+        print(f"\nTotal posts generated: {len(self.state.spoke_posts)}")
+        print("=====================================")
 
 
 def kickoff():
