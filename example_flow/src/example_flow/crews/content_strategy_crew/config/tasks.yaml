@@ -11,13 +11,6 @@ hub_and_spoke_strategy_task:
     4. Optimize hubs for broader SEO potential, prioritizing terms with high search volume or strong relevance to the overall topic of journaling.
     5. Spoke posts should clearly align with their respective hubs, but do not need to duplicate hub-level themes.
 
-    Example Output:
-    ### Hub Topics:
-    1. **[Broad Hub Topic]**
-      - Spoke Posts: [list of spokes]
-    2. **[Broad Hub Topic]**
-      - Spoke Posts: [list of spokes]
-    ...
   expected_output: >
     A comprehensive Hub and Spoke content strategy that leverages the given keywords
     to optimize traffic and conversions for our niche site.
@@ -40,7 +33,7 @@ hub_and_spoke_strategy_task:
 
 create_hub_topics_array_task:
   description: >
-    Based on our Hub and Spoke content strategy and using these keywords as input: {keywords}
+    Based on our Hub and Spoke content strategy from the previous task,
     Create a list of Hub topics. These should be our high-level keywords and these hub topic pages
     will be the content pillars for our hub-and-spoke model blog.
     
@@ -65,6 +58,8 @@ create_hub_topics_array_task:
     ]
   agent: content_strategist
   context: ["hub_and_spoke_strategy_task"]
+  human_input: true
+  
 
 create_spoke_posts_array_task:
   description: >
