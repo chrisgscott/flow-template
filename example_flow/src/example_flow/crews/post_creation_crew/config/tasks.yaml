@@ -1,0 +1,44 @@
+spoke_post_research_task:
+  description: >
+  expected_output: >
+  agent: spoke_post_researcher
+
+image_sourcing_task:
+  description: >
+    Using the Unsplash API, find and source a relevant primary image for the blog post from the previous task.
+  expected_output: >
+    A properly formatted Image model with the following fields:
+      src: str
+      alt: str
+      width: int
+      height: int 
+    Your output MUST be ONLY valid YAML, with no additional text or explanation. All images must be from the Unsplash API and must be horizontal (landscape) orientation.
+  agent: image_sourcing_expert
+  tools: ["unsplash"]
+
+spoke_post_writer_task:
+  description: >
+    Write a blog post of at least 3000 words that is SEO-optimized and engaging, using the research from the previous task. Include any of these keywords in your post content, as long
+    as they are relevant to the topic and used naturally in the context of the post: {keywords}
+  expected_output: >
+    A comprehensive blog post that is SEO-optimized and engaging, using the research from the previous task and the provided keywords.
+    Your post must include:
+    - At least 3000 words
+    - SEO-optimized keywords
+    - Proper markdown formatting, utilizing headings, paragraphs and lists
+    - Detailed, comprehensive coverage of the topic
+
+    Format your post as markdown and save it to the markdown file.
+  agent: spoke_post_writer
+
+frontmatter_expert_task:
+  description: >
+    Generate a YAML frontmatter for the blog post from the previous task.
+  expected_output: >
+
+  agent: frontmatter_expert
+
+content_approval_task:
+  description: >
+  expected_output: >
+  agent: content_approval_expert
