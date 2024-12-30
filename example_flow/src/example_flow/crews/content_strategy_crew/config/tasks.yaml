@@ -1,15 +1,41 @@
 hub_and_spoke_strategy_task:
   description: >
     Given these keywords: {keywords}
-    Create a Hub and Spoke content strategy that targets these keywords effectively.
-    
-    Important requirements:
-    1. Create 4-8 hub topics that cover our main keyword themes
-    2. Each hub topic must be able to support at least 16 unique spoke posts
-    3. Ensure even distribution of our target keywords across the hubs
+    create a hub-and-spoke content strategy that organizes these keywords into **broad, overarching hub topics**. These hubs should be general enough to cover multiple spokes and target broad, high-level search terms.
+    As a reference, look at the "chapter titles" and "agenda topics" from our previous tasks. These are good examples of broad, overarching hub topics.
+
+    Requirements:
+    1. Create 4-8 hub topics that encompass the main keyword themes broadly (e.g., "Journaling for Self-Improvement" rather than "Morning Journaling Prompts").
+    2. Each hub topic must be able to support at least 16 unique spoke posts, focusing on narrower subtopics or specific keywords.
+    3. Ensure even distribution of the provided keywords across the hubs, with no major keyword group omitted.
+    4. Optimize hubs for broader SEO potential, prioritizing terms with high search volume or strong relevance to the overall topic of journaling.
+    5. Spoke posts should clearly align with their respective hubs, but do not need to duplicate hub-level themes.
+
+    Example Output:
+    ### Hub Topics:
+    1. **[Broad Hub Topic]**
+      - Spoke Posts: [list of spokes]
+    2. **[Broad Hub Topic]**
+      - Spoke Posts: [list of spokes]
+    ...
   expected_output: >
     A comprehensive Hub and Spoke content strategy that leverages the given keywords
     to optimize traffic and conversions for our niche site.
+    
+    Requirements:
+    1. Create 4-8 hub topics that encompass the main keyword themes broadly (e.g., "Journaling for Self-Improvement" rather than "Morning Journaling Prompts").
+    2. Each hub topic must be able to support at least 16 unique spoke posts, focusing on narrower subtopics or specific keywords.
+    3. Ensure even distribution of the provided keywords across the hubs, with no major keyword group omitted.
+    4. Optimize hubs for broader SEO potential, prioritizing terms with high search volume or strong relevance to the overall topic of journaling.
+    5. Spoke posts should clearly align with their respective hubs, but do not need to duplicate hub-level themes.
+
+    Example Output:
+    ### Hub Topics:
+    1. **[Broad Hub Topic]**
+      - Spoke Posts: [list of spokes]
+    2. **[Broad Hub Topic]**
+      - Spoke Posts: [list of spokes]
+    ...
   agent: content_strategist
 
 create_hub_topics_array_task:

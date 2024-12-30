@@ -36,6 +36,24 @@ class HubAndSpokeState(BaseModel):
 class HubAndSpokeFlow(Flow[HubAndSpokeState]):
     initial_state = HubAndSpokeState
 
+    def run(self):
+        """Run the flow."""
+        # Run keyword research
+        print("Running keyword research...")
+        keyword_crew = KeywordCrew()
+        result = keyword_crew.run(self.state)
+        if result is None:
+            return None
+        
+        # Run content strategy
+        print("\nRunning content strategy...")
+        content_strategy_crew = ContentStrategyCrew()
+        result = content_strategy_crew.run(self.state)
+        if result is None:
+            return None
+
+        return True
+
     @start()
     def conduct_keyword_research(self):
         """
@@ -167,9 +185,7 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
                 return None
 
             # Print summary
-            hub_post_counts = {}
-            for post in self.state.spoke_posts:
-                hub_post_counts[post["hub"]] = hub_post_counts.get(post["hub"], 0) + 1
+            hub_post_counts = self._get_hub_post_counts()
             
             print("\n=== Content Strategy Flow Complete ===")
             print(f"Generated {len(self.state.hub_topics)} hub topics:")
@@ -186,23 +202,53 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
             print(f"Raw output received: {result.raw}")
             return None
 
+    def _get_hub_post_counts(self):
+        """Get a dictionary of post counts per hub."""
+        hub_post_counts = {}
+        for post in self.state.spoke_posts:
+            hub_post_counts[post["hub"]] = hub_post_counts.get(post["hub"], 0) + 1
+        return hub_post_counts
+
     @listen(create_content_strategy)
     async def log_completion(self):
         """
-        Log completion of the flow.
+        Log the completion of the content strategy.
         """
-        from collections import Counter
-        
-        # Count posts per hub
-        hub_post_counts = Counter(post['hub'] for post in self.state.spoke_posts)
+        hub_post_counts = self._get_hub_post_counts()
         
         print("\n=== Content Strategy Flow Complete ===")
         print(f"Generated {len(self.state.hub_topics)} hub topics:")
         for hub in self.state.hub_topics:
-            post_count = hub_post_counts[hub['slug']]
+            post_count = hub_post_counts.get(hub["slug"], 0)
             print(f"- {hub['title']} ({post_count} posts)")
         print(f"\nTotal posts generated: {len(self.state.spoke_posts)}")
         print("=====================================")
+        return True
+
+    @listen(log_completion)
+    def print_final_state(self):
+        """
+        Print the final state of the flow.
+        """
+        hub_post_counts = self._get_hub_post_counts()
+        
+        print("\n=== Final State ===")
+        print(f"Title: {self.state.title}")
+        print(f"Topic: {self.state.topic}")
+        print(f"Context: {self.state.context}")
+        print(f"Goal: {self.state.goal}")
+        print("\nTarget Keywords:")
+        for kw in self.state.target_keywords:
+            print(f"- {kw}")
+        print("\nHub Topics:")
+        for hub in self.state.hub_topics:
+            post_count = hub_post_counts.get(hub["slug"], 0)
+            print(f"- {hub['title']} (slug: {hub['slug']}, posts: {post_count})")
+        print("\nSpoke Posts:")
+        for post in self.state.spoke_posts:
+            print(f"- {post['title']} (hub: {post['hub']})")
+        print("==================")
+        return True
 
 
 def kickoff():
