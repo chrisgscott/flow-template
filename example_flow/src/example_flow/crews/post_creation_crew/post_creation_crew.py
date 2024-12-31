@@ -2,21 +2,22 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from example_flow.tools.unsplash import UnsplashImageTool
 from crewai_tools import SerperDevTool
-from example_flow.types import Post, Image, FAQItem, SaveResult  # Import the types we need
+from example_flow.types import Post, Image, FAQItem
 import os
 import json
+from datetime import datetime
+import uuid
 
 @CrewBase
 class PostCreationCrew:
     """Post Creation Crew"""
-
-    agents_config = "config/agents.yaml"
-    tasks_config = "config/tasks.yaml"
-
     def __init__(self):
         super().__init__()
         self.serper_tool = SerperDevTool()
         self.unsplash = UnsplashImageTool()
+        
+        # Ensure outputs directory exists
+        os.makedirs("outputs", exist_ok=True)
 
     @agent
     def spoke_post_researcher(self) -> Agent:
@@ -51,7 +52,7 @@ class PostCreationCrew:
         return Agent(
             config=self.agents_config["content_approval_expert"]
         )
-        
+
     @agent
     def file_saving_expert(self) -> Agent:
         return Agent(
@@ -88,20 +89,16 @@ class PostCreationCrew:
 
     @task
     def content_approval_task(self) -> Task:
+        task_config = self.tasks_config["content_approval_task"].copy()
+        # Format the output file with the slug
+        task_config["output_file"] = task_config["output_file"] % self.inputs["spoke_post"]["slug"]
         return Task(
-            config=self.tasks_config["content_approval_task"],
+            config=task_config,
             output_pydantic=Post
-        )
-        
-    @task
-    def save_post_task(self) -> Task:
-        return Task(
-            config=self.tasks_config["save_post_task"],
-            output_pydantic=SaveResult
         )
 
     @crew
-    def crew(self) -> Crew:
+    async def crew(self) -> Crew:
         return Crew(
             agents=self.agents,
             tasks=self.tasks,

@@ -36,6 +36,7 @@ class UnsplashImageTool(BaseTool):
             "query": query,
             "per_page": per_page,
             "page": page,
+            "orientation": "landscape",  # Always get landscape images
             "client_id": UNSPLASH_ACCESS_KEY  # Unsplash uses the Access Key as the client_id
         }
 

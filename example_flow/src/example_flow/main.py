@@ -3,6 +3,8 @@ import asyncio
 import json
 import os
 from typing import List, Dict, Optional
+from datetime import datetime
+import uuid
 
 from crewai.flow.flow import Flow, listen, start
 from pydantic import BaseModel
@@ -48,7 +50,7 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
     @start()
     def conduct_keyword_research(self):
         """Kickoff the Keyword Research Crew."""
-        print("Starting Keyword Research Crew...")
+        print("\n=== Starting Keyword Research ===")
         result = (
             KeywordCrew()
             .crew()
@@ -63,27 +65,23 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
         )
 
         try:
-            raw_output = result.raw
-            print("Raw output:", raw_output)
-            
-            target_keywords = json.loads(raw_output)
-            
-            if not isinstance(target_keywords, list) or not all(isinstance(k, str) for k in target_keywords):
-                raise ValueError("Output must be a list of strings")
+            keywords = json.loads(result.raw)
+            if not isinstance(keywords, list) or not all(isinstance(k, str) for k in keywords):
+                raise ValueError("Invalid keyword format - expected list of strings")
                 
-            print(f"Found {len(target_keywords)} keywords")
-            self.state.target_keywords = target_keywords
-            return target_keywords
+            self.state.target_keywords = keywords
+            print(f"Found {len(keywords)} keywords")
+            return keywords
             
-        except (json.JSONDecodeError, ValueError) as e:
-            print(f"Error processing keywords: {e}")
-            print(f"Raw output received: {result.raw}")
-            return self.state.target_keywords  # Return existing keywords on error
+        except Exception as e:
+            print(f"Error processing keywords: {str(e)}")
+            return self.state.target_keywords
     
     @listen(conduct_keyword_research)
     def create_content_strategy(self):
         """Run the Content Strategy Crew to create hub and spoke strategy."""
-        print("\nStarting Content Strategy Crew...")
+        print("\n=== Creating Content Strategy ===")
+        
         result = (
             ContentStrategyCrew()
             .crew()
@@ -97,57 +95,70 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
             )
         )
 
+        # Parse and store the results
         try:
             raw_output = result.raw
             print("Raw output from Content Strategy Crew:", raw_output)
-            strategy_output = json.loads(raw_output)
             
-            # Handle dictionary output with hub_topics and spoke_posts
-            if isinstance(strategy_output, dict):
-                if "hub_topics" in strategy_output:
-                    hub_topics = strategy_output["hub_topics"]
-                    if not isinstance(hub_topics, list):
-                        raise ValueError("hub_topics must be a list")
-                    for hub in hub_topics:
-                        if not isinstance(hub, dict) or not all(k in hub for k in ["title", "slug"]):
-                            raise ValueError("Each hub topic must be a dict with 'title' and 'slug' keys")
-                    self.state.hub_topics = hub_topics
+            try:
+                strategy_output = json.loads(raw_output)
+                
+                # First try to parse as a combined dictionary
+                if isinstance(strategy_output, dict):
+                    if "hub_topics" in strategy_output:
+                        hub_topics = strategy_output["hub_topics"]
+                        if not isinstance(hub_topics, list):
+                            raise ValueError("hub_topics must be a list")
+                        for hub in hub_topics:
+                            if not isinstance(hub, dict) or not all(k in hub for k in ["title", "slug"]):
+                                raise ValueError("Each hub topic must be a dict with 'title' and 'slug' keys")
+                        self.state.hub_topics = hub_topics
 
-                if "spoke_posts" in strategy_output:
-                    spoke_posts = strategy_output["spoke_posts"]
-                    if not isinstance(spoke_posts, list):
-                        raise ValueError("spoke_posts must be a list")
-                    for post in spoke_posts:
-                        if not isinstance(post, dict) or not all(k in post for k in ["title", "slug", "hub"]):
-                            raise ValueError("Each spoke post must be a dict with 'title', 'slug', and 'hub' keys")
-                    self.state.spoke_posts = spoke_posts
-            
-            # Handle array output of either hub topics or spoke posts
-            elif isinstance(strategy_output, list):
-                # Check if this is a hub topics array (no hub field)
-                if all(isinstance(item, dict) and "title" in item and "slug" in item and "hub" not in item for item in strategy_output):
-                    self.state.hub_topics = strategy_output
-                # Check if this is a spoke posts array (has hub field)
-                elif all(isinstance(item, dict) and "title" in item and "slug" in item and "hub" in item for item in strategy_output):
-                    # Get unique hub slugs from the posts
-                    hub_slugs = {post["hub"] for post in strategy_output}
-                    
-                    # Create hub topics from the unique hub slugs if we don't have them yet
-                    if not self.state.hub_topics:
-                        self.state.hub_topics = [
-                            {
-                                "title": slug.replace("-", " ").title(),
-                                "slug": slug
-                            }
-                            for slug in hub_slugs
-                        ]
-                    
-                    self.state.spoke_posts = strategy_output
-                else:
-                    raise ValueError("Array output must be either all hub topics or all spoke posts")
+                    if "spoke_posts" in strategy_output:
+                        spoke_posts = strategy_output["spoke_posts"]
+                        if not isinstance(spoke_posts, list):
+                            raise ValueError("spoke_posts must be a list")
+                        for post in spoke_posts:
+                            if not isinstance(post, dict) or not all(k in post for k in ["title", "slug", "hub"]):
+                                raise ValueError("Each spoke post must be a dict with 'title', 'slug', and 'hub' keys")
+                        self.state.spoke_posts = spoke_posts
+                
+                # If not a dict, try parsing as an array
+                elif isinstance(strategy_output, list):
+                    # If this is an array of arrays, flatten it
+                    if all(isinstance(item, list) for item in strategy_output):
+                        strategy_output = [post for sublist in strategy_output for post in sublist]
+
+                    # Check if this is a hub topics array (no hub field)
+                    if all(isinstance(item, dict) and "title" in item and "slug" in item and "hub" not in item for item in strategy_output):
+                        self.state.hub_topics = strategy_output
+                    # Check if this is a spoke posts array (has hub field)
+                    elif all(isinstance(item, dict) and "title" in item and "slug" in item and "hub" in item for item in strategy_output):
+                        # Get unique hub slugs from the posts
+                        hub_slugs = {post["hub"] for post in strategy_output}
+                        
+                        # Create hub topics from the unique hub slugs if we don't have them yet
+                        if not self.state.hub_topics:
+                            self.state.hub_topics = [
+                                {
+                                    "title": slug.replace("-", " ").title(),
+                                    "slug": slug
+                                }
+                                for slug in hub_slugs
+                            ]
+                        
+                        # Store all posts
+                        self.state.spoke_posts = strategy_output
+                    else:
+                        raise ValueError("Array output must be either all hub topics or all spoke posts")
+
+            except json.JSONDecodeError:
+                print("Warning: Could not parse output as JSON")
+                return None
 
             # Print summary
             hub_post_counts = self._get_hub_post_counts()
+            
             print("\n=== Content Strategy Flow Complete ===")
             print(f"Generated {len(self.state.hub_topics)} hub topics:")
             for hub in self.state.hub_topics:
@@ -160,57 +171,52 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
 
         except Exception as e:
             print(f"Error processing content strategy: {e}")
+            print(f"Raw output received: {result.raw}")
             return None
 
     @listen(create_content_strategy)
     async def create_posts(self):
         """Create individual posts for each spoke in our content strategy."""
-        print("\nStarting Post Creation Crew...")
-        start_time = asyncio.get_event_loop().time()
+        print("\nCreating posts...")
+
+        if not self.state.spoke_posts:
+            print("No spoke posts to create. Run create_content_strategy first.")
+            return
         
-        # Process posts concurrently
-        tasks = []
-        for spoke_post in self.state.spoke_posts:
-            print(f"[{asyncio.get_event_loop().time() - start_time:.2f}s] Scheduling post: {spoke_post['title']}")
-            task = asyncio.create_task(
-                PostCreationCrew()
-                .crew()
-                .kickoff(inputs={
-                    "spoke_post": spoke_post,
-                    "keywords": self.state.target_keywords
-                })
-            )
-            tasks.append(task)
+        print(f"Creating {len(self.state.spoke_posts)} posts...")
+        
+        crew = PostCreationCrew()
+        crew_instance = await crew.crew()
         
         try:
-            # Wait for all posts to complete
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            end_time = asyncio.get_event_loop().time()
+            # Process all posts in parallel
+            inputs = [{
+                "spoke_post": post, 
+                "keywords": self.state.target_keywords
+            } for post in self.state.spoke_posts]
+            results = await crew_instance.kickoff_for_each_async(inputs=inputs)
             
             # Check results
             successful_posts = 0
-            failed_posts = 0
+            failed_posts = []
+            
             for i, result in enumerate(results):
-                post_title = self.state.spoke_posts[i]['title']
                 if isinstance(result, Exception):
-                    print(f"[{end_time - start_time:.2f}s] Failed to create post '{post_title}': {str(result)}")
-                    failed_posts += 1
-                elif result is None:
-                    print(f"[{end_time - start_time:.2f}s] Post '{post_title}' returned None")
-                    failed_posts += 1
+                    print(f"\nError creating post {self.state.spoke_posts[i]['title']}: {str(result)}")
+                    failed_posts.append(self.state.spoke_posts[i]['title'])
                 else:
                     successful_posts += 1
-                    self.state.completed_spokes.append(post_title)
+                    self.state.completed_spokes.append(self.state.spoke_posts[i]['title'])
             
-            print(f"\n[{end_time - start_time:.2f}s] Content creation complete!")
-            print(f"[{end_time - start_time:.2f}s] Successfully created {successful_posts} posts")
-            if failed_posts > 0:
-                print(f"[{end_time - start_time:.2f}s] Failed to create {failed_posts} posts")
+            print(f"\nCompleted {successful_posts} posts successfully.")
+            if failed_posts:
+                print(f"Failed to create {len(failed_posts)} posts:")
+                for post in failed_posts:
+                    print(f"- {post}")
             
         except Exception as e:
-            print(f"[{asyncio.get_event_loop().time() - start_time:.2f}s] Error during post creation: {str(e)}")
-            
-        return results
+            print(f"\nError processing posts: {str(e)}")
+            raise
 
 
 def kickoff():

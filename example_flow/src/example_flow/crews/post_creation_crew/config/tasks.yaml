@@ -67,16 +67,18 @@ frontmatter_expert_task:
 
 content_approval_task:
   description: >
-    Review the blog post titled: {spoke_post[title]}
+    Review and approve the final post content for: {spoke_post[title]}
     This post belongs to hub: {spoke_post[hub]}
     
-    Ensure:
-    1. The frontmatter is properly formatted and complete
-    2. The post content meets our requirements (3000+ words, proper markdown, etc.)
-    3. The post includes relevant FAQ items
-    4. The image is appropriate for the content
+    Your task:
+    1. Review the post content for quality and completeness
+    2. Format the post as a Markdown file with proper YAML frontmatter
+    3. Save the file to disk
     
-    Combine the frontmatter and post content into a single markdown file with proper YAML frontmatter delimiters.
+    The output file MUST:
+    1. Start with YAML frontmatter between --- delimiters
+    2. Include all post metadata in the frontmatter
+    3. Have the main content in Markdown format after the frontmatter
   expected_output: >
     Post:
       title: str
@@ -84,25 +86,5 @@ content_approval_task:
       content: str
       image: Optional[Image]
       faqs: Optional[List[FAQItem]]
+  output_file: outputs/%s.md
   agent: content_approval_expert
-
-save_post_task:
-  description: >
-    Save the approved post and its working files to disk.
-    
-    The post should be saved in these locations:
-    1. Final post: outputs/{slug}.md
-    2. Working files in outputs/_working/{slug}/:
-       - research.md
-       - draft.md
-       - image.yaml
-       - frontmatter.yaml
-    
-    Create all necessary directories if they don't exist.
-    Use proper error handling and logging for all file operations.
-  expected_output: >
-    SaveResult:
-      success: bool
-      message: str
-      files_saved: List[str]
-  agent: file_saving_expert
