@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import asyncio
-import json
 import os
 from typing import List, Dict, Optional
 from datetime import datetime
@@ -14,15 +13,31 @@ load_dotenv()
 agentops.init()
 
 from crewai.flow.flow import Flow, listen, start
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from example_flow.crews.keyword_crew.keyword_crew import KeywordCrew
 from example_flow.crews.content_strategy_crew.content_strategy_crew import ContentStrategyCrew
 from example_flow.crews.post_creation_crew.post_creation_crew import PostCreationCrew
-from example_flow.types import Article, Post, Topic, FAQItem, Image, ParentTopic
+from example_flow.types import (
+    Article, 
+    Post, 
+    Topic, 
+    FAQItem, 
+    Image, 
+    ParentTopic,
+    HubTopic, 
+    SpokePost, 
+    ContentStrategyResult
+)
+
+
+class FlowHaltException(Exception):
+    """Custom exception to halt the flow for debugging or inspection."""
+    pass
 
 
 class HubAndSpokeState(BaseModel):
+    """State model for the Hub and Spoke content strategy flow."""
     title: str = "The Ultimate Guide to Daily Journaling"
     topic: str = "Daily Journaling"
     context: str = """
@@ -35,13 +50,19 @@ class HubAndSpokeState(BaseModel):
         comprehensive, interconnected content that attracts organic traffic, engages users, 
         and fulfills their search intent.
     """
-    target_keywords: List[str] = []  # Populated by Keyword Research Crew
-    hub_topics: List[Dict[str, str]] = []  # Stores hub topics with title and slug
-    spoke_posts: List[Dict[str, str]] = []  # Stores spoke posts with title, slug, and hub association
-    completed_spokes: List[str] = []  # Tracks completed spoke post titles
-    completed_hubs: List[str] = []  # Tracks completed hub topics
-    hub_template: str = "The Ultimate Guide to {topic}"  # Dynamic hub title template
-    files_directory: str = "./content/"  # Root directory for saving content files
+    target_keywords: List[str] = Field(default_factory=list)
+    hub_topics: List[HubTopic] = Field(default_factory=list)
+    spoke_posts: List[SpokePost] = Field(default_factory=list)
+    completed_spokes: List[str] = Field(default_factory=list)
+    completed_hubs: List[str] = Field(default_factory=list)
+    hub_template: str = "The Ultimate Guide to {topic}"
+
+    def get_hub_post_counts(self) -> Dict[str, int]:
+        """Get a count of posts for each hub."""
+        hub_post_counts = {}
+        for post in self.spoke_posts:
+            hub_post_counts[post.hub] = hub_post_counts.get(post.hub, 0) + 1
+        return hub_post_counts
 
 
 class HubAndSpokeFlow(Flow[HubAndSpokeState]):
@@ -49,22 +70,19 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
 
     def __init__(self):
         super().__init__()
+        print("🔍 Flow Initialization: Checking method decorators")
+        # Debugging print to verify method decorators
+        for method_name, method in self.__class__.__dict__.items():
+            if hasattr(method, '_is_start') or hasattr(method, '_is_listen'):
+                print(f"Method {method_name} has decorator: {method}")
 
     initial_state = HubAndSpokeState
 
-    def _get_hub_post_counts(self) -> Dict[str, int]:
-        """Get a count of posts for each hub."""
-        hub_post_counts = {}
-        for post in self.state.spoke_posts:
-            hub_post_counts[post["hub"]] = hub_post_counts.get(post["hub"], 0) + 1
-        return hub_post_counts
-
     @start()
     async def conduct_keyword_research(self):
-        """Kickoff the Keyword Research Crew."""
-        print("\n=== Starting Keyword Research ===")
+        """Conduct keyword research and populate target keywords."""
+        print("\n🚀 EXPLICITLY RUNNING: Conducting Keyword Research 🚀")
         try:
-            # Track initial state
             result = (
                 KeywordCrew()
                 .crew()
@@ -73,24 +91,18 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
                         "topic": self.state.topic,
                         "context": self.state.context,
                         "goal": self.state.goal,
-                        "keywords": self.state.target_keywords,
                     }
                 )
             )
 
-            # Log the result structure
-            try:
-                keywords = json.loads(result.raw)
-                if not isinstance(keywords, list) or not all(isinstance(k, str) for k in keywords):
-                    raise ValueError("Invalid keyword format - expected list of strings")
-                    
-                self.state.target_keywords = keywords
-                print(f"Found {len(keywords)} keywords")
-                return keywords
-                    
-            except Exception as e:
-                print(f"Error processing keywords: {str(e)}")
-                return self.state.target_keywords
+            # Expect result to be a list of keywords directly
+            if not isinstance(result, list) or not all(isinstance(k, str) for k in result):
+                raise ValueError("Invalid keyword format")
+            
+            self.state.target_keywords = result
+            print(f"Found {len(result)} keywords")
+            print("Keywords:", result)
+            return result
 
         except Exception as e:
             print(f"\n❌ Error conducting keyword research:")
@@ -115,93 +127,42 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
                 )
             )
 
-            # Parse and store the results
-            try:
-                raw_output = result.raw
-                print("Raw output from Content Strategy Crew:", raw_output)
-                
-                try:
-                    strategy_output = json.loads(raw_output)
-                    
-                    # First try to parse as a combined dictionary
-                    if isinstance(strategy_output, dict):
-                        if "hub_topics" in strategy_output:
-                            hub_topics = strategy_output["hub_topics"]
-                            if not isinstance(hub_topics, list):
-                                raise ValueError("hub_topics must be a list")
-                            for hub in hub_topics:
-                                if not isinstance(hub, dict) or not all(k in hub for k in ["title", "slug"]):
-                                    raise ValueError("Each hub topic must be a dict with 'title' and 'slug' keys")
-                            self.state.hub_topics = hub_topics
-                        
-                        if "spoke_posts" in strategy_output:
-                            spoke_posts = strategy_output["spoke_posts"]
-                            if not isinstance(spoke_posts, list):
-                                raise ValueError("spoke_posts must be a list")
-                            for post in spoke_posts:
-                                if not isinstance(post, dict) or not all(k in post for k in ["title", "slug", "hub"]):
-                                    raise ValueError("Each spoke post must be a dict with 'title', 'slug', and 'hub' keys")
-                            self.state.spoke_posts = spoke_posts
-                    
-                    # If not a dict, try parsing as an array
-                    elif isinstance(strategy_output, list):
-                        # If this is an array of arrays, flatten it
-                        if all(isinstance(item, list) for item in strategy_output):
-                            strategy_output = [post for sublist in strategy_output for post in sublist]
+            # Expect result to be a ContentStrategyResult directly
+            if not isinstance(result, ContentStrategyResult):
+                raise ValueError("Content strategy result is not a Pydantic model")
 
-                        # Check if this is a hub topics array (no hub field)
-                        if all(isinstance(item, dict) and "title" in item and "slug" in item and "hub" not in item for item in strategy_output):
-                            self.state.hub_topics = strategy_output
-                        # Check if this is a spoke posts array (has hub field)
-                        elif all(isinstance(item, dict) and "title" in item and "slug" in item and "hub" in item for item in strategy_output):
-                            # Get unique hub slugs from the posts
-                            hub_slugs = {post["hub"] for post in strategy_output}
-                            
-                            # Create hub topics from the unique hub slugs if we don't have them yet
-                            if not self.state.hub_topics:
-                                self.state.hub_topics = [
-                                    {
-                                        "title": slug.replace("-", " ").title(),
-                                        "slug": slug
-                                    }
-                                    for slug in hub_slugs
-                                ]
-                            
-                            # Store all posts
-                            self.state.spoke_posts = strategy_output
-                    
-                    print("\n=== Content Strategy Flow Complete ===")
-                    print(f"Generated {len(self.state.hub_topics)} hub topics:")
-                    for hub in self.state.hub_topics:
-                        print(f"- {hub['title']}")
-                    print(f"\nTotal posts generated: {len(self.state.spoke_posts)}")
-                    print("=====================================")
-                    
-                    return raw_output
+            # Update state with parsed result
+            self.state.hub_topics = result.hub_topics
+            self.state.spoke_posts = result.spoke_posts
+            
+            print("\n🏁 Final State:")
+            print(f"Hub Topics: {len(self.state.hub_topics)}")
+            print(f"Spoke Posts: {len(self.state.spoke_posts)}")
 
-                except json.JSONDecodeError:
-                    print("Warning: Could not parse output as JSON")
-                    return None
-
-            except Exception as e:
-                print(f"Error processing content strategy: {e}")
-                print(f"Raw output received: {result.raw}")
-                return None
+            return self.state.spoke_posts
 
         except Exception as e:
             print(f"\n❌ Error creating content strategy:")
             print(f"   {str(e)}")
+            import traceback
+            traceback.print_exc()
             raise
 
     @listen(create_content_strategy)
     async def create_posts(self):
         """Create individual posts for each spoke in our content strategy."""
         # Log the state of spoke_posts
-        print("\n🔍 State Debug Information:")
+        print("\n🔍 Detailed State Debug Information:")
         print(f"spoke_posts type: {type(self.state.spoke_posts)}")
-        print(f"spoke_posts value: {self.state.spoke_posts}")
-        print(f"target_keywords type: {type(self.state.target_keywords)}")
-        print(f"target_keywords value: {self.state.target_keywords}")
+        print(f"spoke_posts value (first 2 items): {self.state.spoke_posts[:2]}")
+        print(f"spoke_posts length: {len(self.state.spoke_posts)}")
+        
+        # Detailed type checking
+        for i, post in enumerate(self.state.spoke_posts):
+            print(f"\nPost {i + 1} details:")
+            print(f"  Type: {type(post)}")
+            print(f"  Keys (if dict): {post.keys() if isinstance(post, dict) else 'N/A'}")
+            print(f"  Attributes (if object): {dir(post) if not isinstance(post, dict) else 'N/A'}")
         
         if self.state.spoke_posts is None:
             error_msg = "spoke_posts is None. Check if create_content_strategy completed successfully."
@@ -223,18 +184,21 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
         print("\n🔍 Validating post structures:")
         for i, post in enumerate(self.state.spoke_posts):
             print(f"\nPost {i + 1}:")
-            print(f"  Title: {post.get('title', 'MISSING')}")
-            print(f"  Slug: {post.get('slug', 'MISSING')}")
-            print(f"  Hub: {post.get('hub', 'MISSING')}")
+            # Use get method with a default to handle different input types
+            print(f"  Title: {post.get('title', getattr(post, 'title', 'MISSING'))}")
+            print(f"  Slug: {post.get('slug', getattr(post, 'slug', 'MISSING'))}")
+            print(f"  Hub: {post.get('hub', getattr(post, 'hub', 'MISSING'))}")
             
-            if not isinstance(post, dict):
-                error_msg = f"Post {i + 1} is not a dictionary. Got type: {type(post)}"
+            # Flexible type checking
+            if not (isinstance(post, dict) or hasattr(post, 'title')):
+                error_msg = f"Post {i + 1} is neither a dictionary nor an object with 'title' attribute. Got type: {type(post)}"
                 print(f"❌ {error_msg}")
                 continue
             
+            # Flexible field checking
             missing_fields = []
             for field in ['slug', 'title', 'hub']:
-                if field not in post:
+                if not (field in post if isinstance(post, dict) else hasattr(post, field)):
                     missing_fields.append(field)
             
             if missing_fields:
@@ -249,19 +213,25 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
         print("✅ Crew initialized successfully")
         
         try:
-            # Prepare inputs for each spoke post
+            # Prepare inputs for each spoke post, with multiple access methods
             inputs = [
                 {
-                    "spoke_post": post,
+                    "spoke_post": post,  # Entire post dictionary
+                    "title": post['title'],  # Direct access to title
+                    "slug": post['slug'],  # Direct access to slug
+                    "hub": post['hub'],  # Direct access to hub
                     "keywords": self.state.target_keywords
                 } for post in self.state.spoke_posts
             ]
             print(f"\n📦 Prepared {len(inputs)} inputs for processing")
 
-            # Execute asynchronously for each input
-            print("\n⚡ Starting parallel task execution...")
-            results = await crew_instance.kickoff_for_each_async(inputs=inputs)
-            print("✅ Parallel task execution completed")
+            # Use kickoff_async instead of kickoff_for_each_async
+            print("\n⚡ Starting async crew execution...")
+            results = []
+            for input_data in inputs:
+                result = await crew_instance.kickoff_async(inputs=input_data)
+                results.append(result)
+            print("✅ Async crew execution completed")
             
             # Handle results
             successful_posts = 0
@@ -270,6 +240,7 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
             print("\n📝 Processing task results:")
             for i, result in enumerate(results):
                 post_title = self.state.spoke_posts[i]['title']
+                
                 if isinstance(result, Exception):
                     print(f"❌ Error in task for post '{post_title}':")
                     print(f"   {result}")
@@ -300,9 +271,12 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
 def kickoff():
     """Entry point to start the flow."""
     flow = HubAndSpokeFlow()
-    result = flow.kickoff()
-    print(result)
-    return result
+    try:
+        result = flow.kickoff()
+        return result
+    except Exception as e:
+        print(f"\n❌ Unexpected error: {e}")
+        raise
 
 
 def plot():

@@ -1,4 +1,3 @@
-```
 Daily Journaling Conference Agenda
 
 **Date:** [Insert Date]
@@ -59,4 +58,3 @@ Daily Journaling Conference Agenda
 ---
 
 **Note:** Schedule is subject to change based on speaker availability and conference logistics.
-```

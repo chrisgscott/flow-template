@@ -43,23 +43,24 @@ create_hub_topics_array_task:
     3. Hubs should not overlap too much in their focus
     4. Each hub should target a distinct set of our keywords
   expected_output: >
-    An array of 4-8 hub topic objects. Each object must have a 'title' (human-readable) and 'slug' (kebab-case) field.
-    Your output MUST be ONLY a valid JSON array of objects, with no additional text or explanation.
+    A list of 4-8 hub topic dictionaries. Each dictionary must have a 'title' (human-readable) 
+    and 'slug' (kebab-case) key.
+    
+    The output should be a Python list of dictionaries, not a JSON array.
+    
     Example format:
     [
-      {{
+      {
         "title": "Getting Started with Journal Prompts",
         "slug": "getting-started-journal-prompts"
-      }},
-      {{
+      },
+      {
         "title": "Advanced Journaling Techniques",
         "slug": "advanced-journaling-techniques"
-      }}
+      }
     ]
   agent: content_strategist
   context: ["hub_and_spoke_strategy_task"]
-#  human_input: true
-  
 
 create_spoke_posts_array_task:
   description: >
@@ -76,21 +77,25 @@ create_spoke_posts_array_task:
     6. Post slugs must be unique across ALL posts
     7. Each post's hub field must exactly match its parent hub's slug
   expected_output: >
-    An array of spoke post objects. Each object must have a 'title' (human-readable), 'slug' (kebab-case), and 'hub' (matching a hub topic's slug) field.
-    Your output MUST be ONLY a valid JSON array of objects, with no additional text or explanation.
+    A list of spoke post dictionaries. Each dictionary must have a 'title' (human-readable), 
+    'slug' (kebab-case), and 'hub' (matching a hub topic's slug) key.
+    
     You MUST create EXACTLY 16 posts for EACH hub topic.
+    
+    The output should be a Python list of dictionaries, not a JSON array.
+    
     Example format:
     [
-      {{
+      {
         "title": "50 Morning Journal Prompts to Start Your Day",
         "slug": "50-morning-journal-prompts",
         "hub": "getting-started-journal-prompts"
-      }},
-      {{
+      },
+      {
         "title": "How to Write Your First Journal Entry",
         "slug": "how-to-write-first-journal-entry",
         "hub": "getting-started-journal-prompts"
-      }}
+      }
     ]
   agent: content_strategist
   context: ["create_hub_topics_array_task"]

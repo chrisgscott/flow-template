@@ -1,20 +1,22 @@
 spoke_post_research_task:
   description: >
-    Conduct detailed research for the post titled: {{spoke_post.title}}
-    This post belongs to hub: {{spoke_post.hub}}
+    Conduct detailed research for the post titled: {title}
+    This post belongs to hub: {hub}
+    This posts slug is: {slug}
     
-    Consider these keywords in your research: {{keywords}}
+    Consider these keywords in your research: {keywords}
   expected_output: >
     An exhaustive report outlining the results of the research. Your output must be aligned with the post title and hub.
   agent: spoke_post_researcher
 
 spoke_post_writer_task:
   description: >
-    Write a blog post titled: {{spoke_post.title}}
-    This post belongs to hub: {{spoke_post.hub}}
+    Write a blog post titled: {title}
+    This post belongs to hub: {hub}
+    This posts slug is: {slug}
     
     Write a blog post of at least 3000 words that is SEO-optimized and engaging, using the research from the previous task. 
-    Include any of these keywords in your post content, as long as they are relevant to the topic and used naturally in the context of the post: {{keywords}}
+    Include any of these keywords in your post content, as long as they are relevant to the topic and used naturally in the context of the post: {keywords}
     
     Your complete blog post must include:
     - Title and description using SEO-optimized keywords for this post
@@ -30,9 +32,9 @@ spoke_post_writer_task:
 
 image_sourcing_task:
   description: >
-    Using the Unsplash API, find and source a relevant primary image that represents the main theme or topic of this post.
+    Using the Unsplash API, find and source a relevant primary image that represents {title}.
     The image must be:
-    - Relevant to the post topic
+    - Relevant to {title}
     - High quality and visually appealing
     - In landscape orientation (horizontal)
     - From Unsplash
@@ -46,8 +48,9 @@ image_sourcing_task:
 
 frontmatter_expert_task:
   description: >
-    Generate a YAML frontmatter for the blog post titled: {{spoke_post.title}}
-    This post belongs to hub: {{spoke_post.hub}}
+    Generate a YAML frontmatter for the blog post titled: {title}
+    This post belongs to hub: {hub}
+    This posts slug is: {slug}
     
     The frontmatter must strictly follow our frontmatter schema and include:
     - The post title and description
@@ -67,13 +70,14 @@ frontmatter_expert_task:
 
 content_approval_task:
   description: >
-    Review and approve the final post content for: {{spoke_post.title}}
-    This post belongs to hub: {{spoke_post.hub}}
+    Review and approve the final post content for: {title}
+    This post belongs to hub: {hub}
+    This posts slug is: {slug}
     
     Your task:
     1. Review the post content for quality and completeness
     2. Format the post as a Markdown file with proper YAML frontmatter
-    3. Save the file to: outputs/{{spoke_post.slug}}.md
+    3. Save the file to: outputs/posts/{slug}.md
     
     The output file MUST:
     1. Start with YAML frontmatter between --- delimiters
@@ -81,7 +85,7 @@ content_approval_task:
     3. Have the main content in Markdown format after the frontmatter
 
     After saving the file, confirm with:
-    "✅ Successfully saved post to: outputs/{{spoke_post.slug}}.md"
+    "✅ Successfully saved post to: outputs/posts/{slug}.md"
   expected_output: >
     Post:
       title: str
@@ -89,5 +93,11 @@ content_approval_task:
       content: str
       image: Optional[Image]
       faqs: Optional[List[FAQItem]]
-  output_file: outputs/{{spoke_post.slug}}.md
+  tools:
+    - FileWriterTool
+  config:
+    file_name: "{slug}.md"
+    content: "{content}"
+    directory: "outputs/posts"
   agent: content_approval_expert
+  human_input: true
