@@ -7,7 +7,6 @@ topic_for_dummies_task:
     Include chapter names and any subsection names that would be included in each chapter for the absolute best "For Dummies" book on {topic}.
   agent: keyword_researcher
   output_file: outputs/keyword_research/for_dummies.md
-  tools: [SerperDevTool()]
 
 topic_conference_agenda_task:
   description: >
@@ -18,7 +17,6 @@ topic_conference_agenda_task:
     Include talk titles and any other details that would be included in the conference agenda for the absolute best {topic} conference.
   agent: keyword_researcher
   output_file: outputs/keyword_research/conference_agenda.md
-  tools: [SerperDevTool()]
 
 competitive_landscape_task:
   description: >
@@ -28,7 +26,6 @@ competitive_landscape_task:
     A list of 5-15 high level categories about {topic}, with a brief description of each category, and a couple of specific examples of things the websites you've found have written about that would fit into each category.
   agent: keyword_researcher
   output_file: outputs/keyword_research/competitive_landscape.md
-  tools: [SerperDevTool()]
 
 reddit_task:
   description: >
@@ -40,7 +37,6 @@ reddit_task:
    A list of some specific titles of popular threads on Reddit about {topic}. 
   agent: keyword_researcher
   output_file: outputs/keyword_research/reddit.md
-  tools: [SerperDevTool()]
 
 add_keywords_to_state_task:
   description: >

@@ -15,70 +15,50 @@ class KeywordCrew:
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
+    def __init__(self):
+        super().__init__()
+        self.serper_tool = SerperDevTool()
+
     @agent
     def keyword_researcher(self) -> Agent:
         return Agent(
             config=self.agents_config["keyword_researcher"],
-            verbose=True,
-        )
-
-    def _create_task(self, task_name: str) -> Task:
-        """
-        Dynamic task creation based on YAML configuration.
-        
-        Args:
-            task_name (str): Name of the task in tasks.yaml
-        
-        Returns:
-            Task: Configured CrewAI Task
-        """
-        task_config = self.tasks_config[task_name]
-        
-        # Prepare output type
-        output_pydantic = None
-        if task_name == 'add_keywords_to_state_task':
-            output_pydantic = KeywordsOutput
-        
-        return Task(
-            config=task_config,
-            tools=tools,
-            output_pydantic=output_pydantic
+            verbose=True
         )
 
     @task
     def topic_for_dummies(self) -> Task:
         return Task(
             config=self.tasks_config["topic_for_dummies_task"],
-            tools=[SerperDevTool()],
+            tools=[self.serper_tool]
         )
 
     @task
     def topic_conference_agenda(self) -> Task:
         return Task(
             config=self.tasks_config["topic_conference_agenda_task"],
-            tools=[SerperDevTool()],
+            tools=[self.serper_tool]
         )
 
     @task
     def competitive_landscape(self) -> Task:
         return Task(
             config=self.tasks_config["competitive_landscape_task"],
-            tools=[SerperDevTool()],
+            tools=[self.serper_tool]
         )
 
     @task
     def reddit_task(self) -> Task:
         return Task(
             config=self.tasks_config["reddit_task"],
-            tools=[SerperDevTool()],
+            tools=[self.serper_tool]
         )
 
     @task
     def add_keywords_to_state(self) -> Task:
         return Task(
             config=self.tasks_config["add_keywords_to_state_task"],
-            tools=[SerperDevTool()],
-            output_pydantic=KeywordsOutput,
+            output_pydantic=KeywordsOutput
         )
 
     @crew
@@ -104,18 +84,23 @@ class KeywordCrew:
             # Kickoff the crew and get the result
             result = super().kickoff(inputs=inputs)
             
-            # If result is already a KeywordsOutput, extract keywords
-            if isinstance(result, KeywordsOutput):
-                return result.keywords
-            
-            # If result is a dictionary with keywords
+            # If result is a dictionary with keywords, extract the list
             if isinstance(result, dict) and 'keywords' in result:
                 result = result['keywords']
             
-            # Validate the result using Pydantic
-            validated_output = KeywordsOutput(keywords=result)
+            # Ensure result is a list of strings
+            if not isinstance(result, list):
+                raise ValueError("Keywords must be a list of strings")
             
-            return validated_output.keywords
+            # Validate that all items are strings
+            if not all(isinstance(keyword, str) for keyword in result):
+                raise ValueError("All keywords must be strings")
+            
+            # If using Pydantic model, extract keywords
+            if hasattr(result, 'keywords'):
+                result = result.keywords
+            
+            return result
         
         except (ValidationError, ValueError) as e:
             print("\n❌ Keyword Research Error ❌")
