@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import asyncio
 import json
+import os
 from typing import List, Dict, Optional
 
 from crewai.flow.flow import Flow, listen, start
@@ -162,43 +163,62 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
             return None
 
     @listen(create_content_strategy)
-    def create_posts(self):
+    async def create_posts(self):
         """Create individual posts for each spoke in our content strategy."""
         print("\nStarting Post Creation Crew...")
+        start_time = asyncio.get_event_loop().time()
         
-        # Create inputs list for each post
-        post_inputs = [
-            {
-                "spoke_post": post,
-                "keywords": self.state.target_keywords
-            }
-            for post in self.state.spoke_posts
-        ]
+        # Process posts concurrently
+        tasks = []
+        for spoke_post in self.state.spoke_posts:
+            print(f"[{asyncio.get_event_loop().time() - start_time:.2f}s] Scheduling post: {spoke_post['title']}")
+            task = asyncio.create_task(
+                PostCreationCrew()
+                .crew()
+                .kickoff(inputs={
+                    "spoke_post": spoke_post,
+                    "keywords": self.state.target_keywords
+                })
+            )
+            tasks.append(task)
         
-        # Kickoff the crew for each post
-        results = (
-            PostCreationCrew()
-            .crew()
-            .kickoff_for_each(inputs=post_inputs)
-        )
-        
-        # Process results
-        for result, spoke_post in zip(results, self.state.spoke_posts):
-            if result is None:
-                print(f"Failed to create post: {spoke_post['title']}")
-                continue
-                
-            self.state.completed_spokes.append(spoke_post['title'])
-            print(f"Completed post: {spoke_post['title']}")
+        try:
+            # Wait for all posts to complete
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            end_time = asyncio.get_event_loop().time()
             
-        print(f"\nPost Creation Complete! Created {len(self.state.completed_spokes)} posts.")
-        return True
+            # Check results
+            successful_posts = 0
+            failed_posts = 0
+            for i, result in enumerate(results):
+                post_title = self.state.spoke_posts[i]['title']
+                if isinstance(result, Exception):
+                    print(f"[{end_time - start_time:.2f}s] Failed to create post '{post_title}': {str(result)}")
+                    failed_posts += 1
+                elif result is None:
+                    print(f"[{end_time - start_time:.2f}s] Post '{post_title}' returned None")
+                    failed_posts += 1
+                else:
+                    successful_posts += 1
+                    self.state.completed_spokes.append(post_title)
+            
+            print(f"\n[{end_time - start_time:.2f}s] Content creation complete!")
+            print(f"[{end_time - start_time:.2f}s] Successfully created {successful_posts} posts")
+            if failed_posts > 0:
+                print(f"[{end_time - start_time:.2f}s] Failed to create {failed_posts} posts")
+            
+        except Exception as e:
+            print(f"[{asyncio.get_event_loop().time() - start_time:.2f}s] Error during post creation: {str(e)}")
+            
+        return results
 
 
 def kickoff():
     """Entry point to start the flow."""
     flow = HubAndSpokeFlow()
-    flow.start()
+    result = flow.kickoff()
+    print(result)
+    return result
 
 
 def plot():

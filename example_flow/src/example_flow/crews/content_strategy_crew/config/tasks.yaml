@@ -58,7 +58,7 @@ create_hub_topics_array_task:
     ]
   agent: content_strategist
   context: ["hub_and_spoke_strategy_task"]
-  human_input: true
+#  human_input: true
   
 
 create_spoke_posts_array_task:

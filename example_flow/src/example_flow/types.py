@@ -8,6 +8,7 @@ class ParentTopic(BaseModel):
 
 
 class Image(BaseModel):
+    """Image model for storing image metadata."""
     src: str
     alt: str
     width: int
@@ -15,6 +16,7 @@ class Image(BaseModel):
 
 
 class FAQItem(BaseModel):
+    """FAQ model for storing question-answer pairs."""
     question: str
     answer: str
 
@@ -33,6 +35,7 @@ class Article(BaseModel):
 
 
 class Post(BaseModel):
+    """Post model for storing blog post content."""
     type: str = "post"  # Default to "post"
     title: str
     description: str
@@ -43,6 +46,7 @@ class Post(BaseModel):
     featured: bool
     draft: bool
     faq: Optional[List[FAQItem]] = None  # FAQ is optional
+    faqs: Optional[List[FAQItem]] = None
 
 
 class Topic(BaseModel):
@@ -56,3 +60,10 @@ class Topic(BaseModel):
     image: Image
     featured: bool
     draft: bool
+
+
+class SaveResult(BaseModel):
+    """Result model for file saving operations."""
+    success: bool
+    message: str
+    files_saved: List[str]

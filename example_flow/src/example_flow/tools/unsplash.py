@@ -1,7 +1,7 @@
 from typing import Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
-from types import Image  # Assuming your Image model is imported from types.py
+from example_flow.types import Image  # Import Image model from our types module
 from dotenv import load_dotenv
 import os
 import requests
