@@ -1,16 +1,24 @@
 #!/usr/bin/env python
-import asyncio
 import os
+import sys
+import logging
+import agentops
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Initialize AgentOps with API key from environment variable
+AGENTOPS_API_KEY = os.getenv('AGENTOPS_API_KEY')
+if AGENTOPS_API_KEY:
+    agentops.init(AGENTOPS_API_KEY, skip_auto_end_session=True)
+else:
+    logging.warning("AgentOps API key not found. Monitoring will be disabled.")
+
+import asyncio
 from typing import List, Dict, Optional
 from datetime import datetime
 import uuid
-from dotenv import load_dotenv
-import agentops
-
-load_dotenv()
-
-# Initialize AgentOps for monitoring
-agentops.init()
 
 from crewai.flow.flow import Flow, listen, start
 from pydantic import BaseModel, Field
@@ -27,7 +35,8 @@ from example_flow.types import (
     ParentTopic,
     HubTopic, 
     SpokePost, 
-    ContentStrategyResult
+    ContentStrategyResult,
+    KeywordsOutput
 )
 
 
@@ -80,8 +89,8 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
 
     @start()
     async def conduct_keyword_research(self):
-        """Conduct keyword research and populate target keywords."""
-        print("\n🚀 EXPLICITLY RUNNING: Conducting Keyword Research 🚀")
+        """Conduct keyword research for the current topic."""
+        print("\n=== Conducting Keyword Research ===")
         try:
             result = (
                 KeywordCrew()
@@ -94,19 +103,15 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
                     }
                 )
             )
-
-            # Expect result to be a list of keywords directly
-            if not isinstance(result, list) or not all(isinstance(k, str) for k in result):
-                raise ValueError("Invalid keyword format")
             
-            self.state.target_keywords = result
-            print(f"Found {len(result)} keywords")
-            print("Keywords:", result)
-            return result
+            # Set target keywords directly from the result
+            self.state.target_keywords = result.keywords
+            print(f"Found {len(result.keywords)} keywords")
+            print("Keywords:", result.keywords)
+            return result.keywords
 
         except Exception as e:
-            print(f"\n❌ Error conducting keyword research:")
-            print(f"   {str(e)}")
+            print(f"\n❌ Error conducting keyword research: {e}")
             raise
 
     @listen(conduct_keyword_research)
@@ -269,13 +274,23 @@ class HubAndSpokeFlow(Flow[HubAndSpokeState]):
 
 
 def kickoff():
-    """Entry point to start the flow."""
-    flow = HubAndSpokeFlow()
+    """
+    Kickoff the entire flow and execute all tasks.
+    
+    Returns:
+        The final result of the flow execution.
+    """
     try:
+        flow = HubAndSpokeFlow()
         result = flow.kickoff()
+        
+        # End AgentOps session successfully
+        agentops.end_session("Success")
+        
         return result
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        # End AgentOps session with failure if an exception occurs
+        agentops.end_session("Failure")
         raise
 
 

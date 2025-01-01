@@ -1,3 +1,4 @@
-2024-12-31 13:42:37,468 - INFO - Session Replay: https://app.agentops.ai/drilldown?session_id=09cc6f8e-0f3f-42c8-9aba-decf18c654b5
-2024-12-31 13:44:02,187 - INFO - Session Stats - Duration: 1m 25.2s | Cost: $0.00 | LLMs: 0 | Tools: 5 | Actions: 0 | Errors: 0
-2024-12-31 13:44:02,187 - INFO - Session Replay: https://app.agentops.ai/drilldown?session_id=09cc6f8e-0f3f-42c8-9aba-decf18c654b5
+2024-12-31 18:34:02,941 - INFO - Session Replay: https://app.agentops.ai/drilldown?session_id=5042bda2-9c3d-4591-a824-a77f8065d9f8
+2024-12-31 18:34:05,141 - WARNING - Invalid end_state. Please use one of the EndState enums
+2024-12-31 18:34:05,385 - INFO - Session Stats - Duration: 2.8s | Cost: $0.00 | LLMs: 0 | Tools: 0 | Actions: 0 | Errors: 0
+2024-12-31 18:34:05,385 - INFO - Session Replay: https://app.agentops.ai/drilldown?session_id=5042bda2-9c3d-4591-a824-a77f8065d9f8

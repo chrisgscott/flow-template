@@ -195,44 +195,5 @@ class KeywordsOutput(BaseModel):
     keywords: List[str] = Field(
         description="List of researched keywords",
         min_length=1,  # Ensure at least one keyword
-        max_length=50,  # Prevent unreasonably long lists
-        examples=[
-            ["ai innovation", "machine learning trends", "tech strategy"],
-            ["digital transformation", "cloud computing"]
-        ]
+        max_length=50  # Prevent unreasonably long lists
     )
-    
-    @field_validator('keywords')
-    @classmethod
-    def validate_keywords(cls, v):
-        """
-        Validate that keywords are non-empty strings and unique.
-        
-        Args:
-            v (List[str]): List of keywords to validate
-        
-        Returns:
-            List[str]: Validated and cleaned list of keywords
-        
-        Raises:
-            ValueError: If keywords are invalid
-        """
-        # Remove duplicates while preserving order
-        unique_keywords = []
-        for keyword in v:
-            # Trim whitespace and convert to lowercase
-            cleaned_keyword = keyword.strip().lower()
-            
-            # Skip empty strings
-            if not cleaned_keyword:
-                continue
-            
-            # Add if not already in the list
-            if cleaned_keyword not in unique_keywords:
-                unique_keywords.append(cleaned_keyword)
-        
-        # Ensure at least one keyword remains
-        if not unique_keywords:
-            raise ValueError("At least one non-empty keyword is required")
-        
-        return unique_keywords
